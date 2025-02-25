@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  deepseek:
+    image: deepseek/deepseek-ai:r1-14b
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/models/deepseek-r1-14b
+    volumes:
+      - ./models/deepseek:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+
+  kokoro-tts:
+    image: kokoro/tts:82m
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./models/kokoro:/models
+    environment:
+      - MODEL_PATH=/models/kokoro-tts-82m
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - deepseek
+      - n8n
+      - kokoro-tts
